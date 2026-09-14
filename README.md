@@ -1,4 +1,5 @@
 # Artifact-Driven Development Workflows
+#### Heavily Inspired by Danny Lake's ADD workflow.
 
 Claude Code skills for running a ticket end-to-end through an eight-step,
 artifact-driven workflow: gather context → grill → plan → TDD → e2e → coverage
