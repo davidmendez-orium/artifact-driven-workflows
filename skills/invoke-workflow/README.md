@@ -92,6 +92,41 @@ substitute.
 `goal` and `to-goal-prompt` appear in the templates but are **not** prerequisites; they are named
 only as the autonomous path these human-in-the-loop workflows deliberately do not take.
 
+## MCP servers — installed is not the same as working
+
+The skills are only half the dependency. `fetch-from-jira` (step 1 of every
+workflow) calls out over MCP, and a server can be **registered and still expose
+nothing**. The multi-tenant servers are the usual case: they connect cleanly,
+report healthy, and serve zero tools until a tenant is registered. Nothing says
+so until step 1 fails, and it reads as a skill bug rather than a config gap.
+
+`show` therefore checks two things beyond the skills, and prints them in the
+banner:
+
+| State | What it means |
+|---|---|
+| `NOT REGISTERED` | no MCP server by that name in `.mcp.json` or `~/.claude.json` |
+| `REGISTERED BUT NOT CONFIGURED` | `~/.config/<name>-mcp/tenants/` holds 0 tenants |
+
+The tool names the shipped skills depend on are:
+
+```
+mcp__atlassian__jira_get_issue / jira_search / confluence_get_page / confluence_search
+mcp__github__github_get_file_contents / github_search_code
+```
+
+Both namespaces are generic, so any server registered under the name
+`atlassian` or `github` satisfies them — a first-party connector, a
+self-registered server, or a multi-tenant one. If you use a multi-tenant
+Atlassian server, register a tenant before your first run:
+
+```sh
+atlassian-mcp register <slug>      # site + API token
+```
+
+Stop and fix a warning rather than starting the workflow — the failure lands
+several steps in, after you have already spent a grilling and a planning pass.
+
 ## The four workflows
 
 | Slug | What it is |

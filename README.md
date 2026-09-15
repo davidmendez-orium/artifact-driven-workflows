@@ -77,6 +77,30 @@ place.
 See `skills/invoke-workflow/README.md` for the full argument and prerequisite
 reference.
 
+## Before your first run: MCP servers
+
+The skills are only half the dependency. `fetch-from-jira` — step 1 of every
+workflow — calls out over MCP, and a server can be **registered and still expose
+nothing**: multi-tenant servers connect cleanly, report healthy, and serve zero
+tools until a tenant is registered.
+
+`invoke-workflow` detects this and warns in its banner before step 1, flagging
+either `NOT REGISTERED` (no server by that name in `.mcp.json` or
+`~/.claude.json`) or `REGISTERED BUT NOT CONFIGURED`
+(`~/.config/<name>-mcp/tenants/` holds 0 tenants).
+
+The shipped skills need two namespaces — `mcp__atlassian__*` and
+`mcp__github__*`. Both are generic, so any server registered under the name
+`atlassian` or `github` will do. With a multi-tenant Atlassian server, register
+a tenant first:
+
+```sh
+atlassian-mcp register <slug>      # site + API token
+```
+
+Fix a warning before starting rather than after: the failure otherwise lands
+several steps in, once you have already spent a grilling and a planning pass.
+
 ## Project-agnostic by design
 
 No Jira site, project key, organisation or repo name is baked in anywhere.
