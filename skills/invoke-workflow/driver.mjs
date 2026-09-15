@@ -207,6 +207,109 @@ function cmdList() {
   console.log("Usage: node driver.mjs show <workflow> [<ticket-key | url>] [branch=<name>]");
 }
 
+// --- MCP servers the workflow's skills need -----------------------------------
+// A skill can be installed and still be unusable: its steps call MCP tools, and
+// the server behind them may be unregistered, or registered with no credentials
+// (the multi-tenant servers connect fine and expose nothing until a tenant is
+// registered). Both look identical to "installed" unless you go and look.
+
+const MCP_TOOL = /mcp__([a-z0-9][a-z0-9_-]*)__/gi;
+
+// Where a registered server could be declared, cheapest first.
+function mcpConfigDocs() {
+  const docs = [];
+  for (const p of [
+    join(process.cwd(), ".mcp.json"),
+    join(homedir(), ".claude.json"),
+  ]) {
+    try {
+      docs.push({ path: p, doc: JSON.parse(readFileSync(p, "utf8")) });
+    } catch {
+      /* absent or unreadable — not this check's problem to report */
+    }
+  }
+  return docs;
+}
+
+function findMcpServer(name) {
+  for (const { path, doc } of mcpConfigDocs()) {
+    const direct = doc?.mcpServers?.[name];
+    if (direct) return { entry: direct, where: path };
+    const byProject = doc?.projects?.[process.cwd()]?.mcpServers?.[name];
+    if (byProject) return { entry: byProject, where: `${path} (project)` };
+  }
+  return null;
+}
+
+// Multi-tenant stdio servers keep per-tenant credentials in
+// ~/.config/<name>-mcp/tenants/*.json. An empty directory is the failure this
+// check exists for: connected, zero tools, and nothing says so until step 1.
+function tenantState(name) {
+  const dir = join(homedir(), ".config", `${name}-mcp`, "tenants");
+  if (!existsSync(dir)) return null;
+  let files = [];
+  try {
+    files = readdirSync(dir).filter((f) => f.endsWith(".json"));
+  } catch {
+    return null;
+  }
+  return { dir, count: files.length };
+}
+
+function requiredMcpServers(file) {
+  const names = new Set();
+  for (const { name, ok } of checkPrereqs(file)) {
+    if (!ok) continue;
+    const root = SKILL_ROOTS.find((r) => existsSync(join(r, name, "SKILL.md")));
+    if (!root) continue;
+    let text = "";
+    try {
+      text = readFileSync(join(root, name, "SKILL.md"), "utf8");
+    } catch {
+      continue;
+    }
+    for (const [, server] of text.matchAll(MCP_TOOL)) names.add(server.toLowerCase());
+  }
+  return [...names].sort();
+}
+
+function mcpReport(file) {
+  const servers = requiredMcpServers(file);
+  if (servers.length === 0) return "";
+
+  const problems = [];
+  const fine = [];
+  for (const name of servers) {
+    const found = findMcpServer(name);
+    if (!found) {
+      problems.push(`  ${name}: NOT REGISTERED — no MCP server by that name in .mcp.json or ~/.claude.json`);
+      continue;
+    }
+    const tenants = tenantState(name);
+    if (tenants && tenants.count === 0) {
+      problems.push(
+        `  ${name}: REGISTERED BUT NOT CONFIGURED — ${tenants.dir} holds 0 tenants.\n` +
+          `     It will connect and expose no tools. Register one before step 1.`
+      );
+      continue;
+    }
+    fine.push(tenants ? `${name} (${tenants.count} tenant(s))` : name);
+  }
+
+  if (problems.length === 0) {
+    return `MCP servers: ${fine.join(", ")} — all registered.\n`;
+  }
+  return (
+    `!!! MCP SERVERS MISCONFIGURED — the skills are installed but cannot call out !!!\n` +
+    problems.join("\n") +
+    `\n` +
+    (fine.length ? `  OK: ${fine.join(", ")}\n` : "") +
+    `  Tell the user before step 1. A skill whose MCP server is missing or has no\n` +
+    `  credentials fails at the moment it is used, several steps in, and reads as a\n` +
+    `  skill bug rather than a configuration gap.\n`
+  );
+}
+
 function prereqReport(file) {
   const rows = checkPrereqs(file);
   const missing = rows.filter((r) => !r.ok);
@@ -304,6 +407,7 @@ function cmdShow(query, rest) {
     notesLine +
     `Source: invoke-workflow/references/${file}\n` +
     prereqReport(file) +
+    mcpReport(file) +
     (ticket
       ? `Panel title: /rename is user-only — before the first step, ask the user to run:\n` +
         `  /rename ${ticket.id} ${slugOf(file)}\n`
