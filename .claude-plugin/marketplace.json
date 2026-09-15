@@ -7,8 +7,8 @@
   },
   "plugins": [
     {
-      "name": "invoke-workflow",
-      "source": "./plugins/invoke-workflow",
+      "name": "adw",
+      "source": "./plugins/adw",
       "description": "Four eight-step workflows (feature/bugfix x in-checkout/worktree) plus the ten skills their steps delegate to."
     }
   ]

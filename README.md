@@ -35,7 +35,7 @@ actually installed before you start.
 
 ```
 /plugin marketplace add davidmendez-orium/artifact-driven-workflows
-/plugin install invoke-workflow@artifact-driven-workflows
+/plugin install adw@artifact-driven-workflows
 ```
 
 **Or with the script**, from a clone, if you would rather drop the skills
