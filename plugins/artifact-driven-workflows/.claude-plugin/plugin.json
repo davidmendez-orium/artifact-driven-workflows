@@ -1,0 +1,20 @@
+{
+  "name": "artifact-driven-workflows",
+  "displayName": "Artifact-Driven Workflows",
+  "description": "Runs a ticket end-to-end through an eight-step, artifact-driven workflow. /invoke-workflow resolves one of four human-in-the-loop templates with the ticket, base branch and your own instructions filled in, verifies every skill it delegates to is installed, and warns when a required MCP server is registered but has no credentials.",
+  "keywords": [
+    "workflow",
+    "tdd",
+    "jira",
+    "planning",
+    "code-review",
+    "worktree"
+  ],
+  "author": {
+    "name": "David Mendez",
+    "email": "david.mendez@orium.com"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/davidmendez-orium/artifact-driven-workflows",
+  "homepage": "https://github.com/davidmendez-orium/artifact-driven-workflows"
+}

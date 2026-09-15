@@ -31,18 +31,29 @@ actually installed before you start.
 
 ## Install
 
+**From the plugin marketplace** — the native route, no clone:
+
+```
+/plugin marketplace add davidmendez-orium/artifact-driven-workflows
+/plugin install artifact-driven-workflows@artifact-driven-workflows
+```
+
+**Or with the script**, from a clone, if you would rather drop the skills
+straight into a skills directory:
+
 ```sh
-./install.sh              # ~/.claude/skills/        — available in every repo
-./install.sh --project    # ./.claude/skills/        — this repo only
+./install.sh              # ~/.claude/skills/    - available in every repo
+./install.sh --project    # ./.claude/skills/    - this repo only
 ./install.sh --check      # report what is installed where
 ./install.sh --uninstall  # remove them from the same target
 ./install.sh invoke-workflow tdd     # install only the named skills
 ```
 
-Nothing resolves outside the skill directories, so copying them *is* a complete
-install; `install.sh` just does it consistently and verifies afterwards.
+Each skill is a self-contained directory that resolves nothing outside itself,
+so copying it is a complete install; `install.sh` just does it consistently and
+runs the prerequisite check afterwards.
 
-Node is required — `invoke-workflow`'s resolver is an ES module.
+Node is required either way - `invoke-workflow`'s resolver is an ES module.
 
 ## Use
 

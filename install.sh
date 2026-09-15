@@ -12,7 +12,7 @@
 
 set -eu
 
-SRC="$(cd "$(dirname "$0")" && pwd)/skills"
+SRC="$(cd "$(dirname "$0")" && pwd)/plugins/artifact-driven-workflows/skills"
 MODE="install"
 SCOPE="user"
 PROJECT_DIR=""

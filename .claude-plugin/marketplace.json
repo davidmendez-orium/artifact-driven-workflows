@@ -1,0 +1,15 @@
+{
+  "name": "artifact-driven-workflows",
+  "description": "Human-in-the-loop, artifact-driven development workflows for running a ticket end-to-end: gather context, grill, plan, TDD, e2e, coverage audit, docs, hand back.",
+  "owner": {
+    "name": "David Mendez",
+    "email": "david.mendez@orium.com"
+  },
+  "plugins": [
+    {
+      "name": "artifact-driven-workflows",
+      "source": "./plugins/artifact-driven-workflows",
+      "description": "Four eight-step workflows (feature/bugfix x in-checkout/worktree) plus the ten skills their steps delegate to."
+    }
+  ]
+}
