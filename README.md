@@ -119,7 +119,7 @@ exact commands stated as all-green.
 | | In your checkout | Isolated worktree |
 |---|---|---|
 | **Feature** | `feature-hitl` | `feature-hitl-worktree` |
-| **Bug** | `bugfix-human-in-the-loop` | `bugfix-hitl-worktree` |
+| **Bug** | `bugfix-hitl` | `bugfix-hitl-worktree` |
 
 The worktree variants are the default when tickets run in parallel. The bugfix
 worktree variant carries a promotion rule: if confirming the repro needs a

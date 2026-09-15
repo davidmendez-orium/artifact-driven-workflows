@@ -33,10 +33,13 @@ own location rather than assuming a repo layout.
 node <skill-dir>/driver.mjs list
 ```
 
-**2. Resolve the chosen workflow with the ticket** (matches by slug substring —
-`feature`, `worktree`, `bugfix-human` all work; ticket accepts a key `ABC-1234`
-or a full ticket URL, whichever the user gave you — pass it through verbatim
-rather than reshaping it):
+**2. Resolve the chosen workflow with the ticket.** The workflow matches by slug,
+and an exact slug always wins — `bugfix-hitl` and `feature-hitl` resolve to the
+main-checkout variants even though the `-worktree` slugs contain them. A shorter
+substring only works if it is unique, so `bugfix`, `feature` and `worktree` are
+each refused with a list of candidates. The ticket accepts a key `ABC-1234` or a
+full URL, whichever the user gave you — pass it through verbatim rather than
+reshaping it:
 
 ```bash
 node <skill-dir>/driver.mjs show feature ABC-1234
@@ -136,7 +139,7 @@ Three rules that decide whether the Core Claims section earns anything:
 
 ## Workflows
 
-- `bugfix-human-in-the-loop` — fix a Jira bug end-to-end, TDD + HITL, in the main checkout.
+- `bugfix-hitl` — fix a Jira bug end-to-end, TDD + HITL, in the main checkout.
 - `bugfix-hitl-worktree` — same, split across a step 0 (clean analysis checkout) and a step 3.5 (full worktree setup).
 - `feature-hitl` — build a feature ticket end-to-end, TDD + HITL, in the main checkout.
 - `feature-hitl-worktree` — same, split across a step 0 (clean analysis checkout) and a step 3.5 (full worktree setup).
@@ -182,10 +185,10 @@ Both templates tell the agent to STOP rather than substitute a hand-made worktre
 
 ## Gotchas
 
-- **`bugfix`, `feature` and `worktree` all match more than one workflow now.** The driver
-  refuses and lists the candidates. An exact slug always wins, so `feature-hitl` resolves to the
-  main-checkout variant even though `feature-hitl-worktree` also contains it; anything shorter
-  needs disambiguating (`bugfix-human`, `bugfix-hitl-worktree`, `feature-hitl-worktree`).
+- **`bugfix`, `feature` and `worktree` each match two workflows.** The driver refuses and lists
+  the candidates. An exact slug always wins, so `bugfix-hitl` and `feature-hitl` resolve to the
+  main-checkout variants even though the `-worktree` slugs contain them as substrings — use a
+  full slug and ambiguity never arises.
 - **`terminalTitleFromRename: false` in settings kills the panel-title half of `/rename`** — the
   conversation still gets the ticket key, the tab keeps its auto-generated topic title. It
   defaults to `true`, so this works unless someone has explicitly turned it off.

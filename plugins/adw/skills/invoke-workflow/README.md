@@ -133,7 +133,7 @@ several steps in, after you have already spent a grilling and a planning pass.
 |---|---|
 | `feature-hitl` | build a feature ticket end-to-end, TDD + HITL, in your current checkout |
 | `feature-hitl-worktree` | same, in an isolated worktree (step 0 analysis checkout + step 3.5 full setup) |
-| `bugfix-human-in-the-loop` | fix a bug end-to-end, repro-first, in your current checkout |
+| `bugfix-hitl` | fix a bug end-to-end, repro-first, in your current checkout |
 | `bugfix-hitl-worktree` | same, in an isolated worktree |
 
 `bugfix`, `feature` and `worktree` each match more than one slug; the driver refuses and lists the

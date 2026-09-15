@@ -7,7 +7,7 @@
 //   node driver.mjs show <workflow> [<ticket-key | url>] [branch=<name>]
 //
 // <workflow> matches a file in references/ by slug substring
-// (e.g. "feature", "worktree", "bugfix-human").
+// (e.g. "feature", "worktree", "bugfix-hitl").
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
