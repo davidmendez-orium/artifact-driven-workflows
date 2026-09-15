@@ -58,35 +58,73 @@ Node is required either way - `invoke-workflow`'s resolver is an ES module.
 ## Use
 
 ```
-/invoke-workflow [workflow] [ticket key | url] [branch=<name>] [any other instructions]
+/adw:invoke-workflow [workflow] [ticket key | url] [branch=<name>] [any other instructions]
 ```
+
+Installed as a plugin the skills are namespaced `adw:`; dropped straight into a
+skills directory by `install.sh` they are bare (`/invoke-workflow`).
 
 Arguments after the workflow name are order-free and identified by shape: a
 ticket key or URL is the ticket, `branch=…` is the base branch, anything else is
 free-text instruction carried into the run.
 
 ```
-/invoke-workflow feature-hitl ABC-1234
-/invoke-workflow bugfix-hitl-worktree ABC-1234 branch=release/24.3
-/invoke-workflow feature-hitl-worktree ABC-1234 be thorough about the repro
+/adw:invoke-workflow feature-hitl ABC-1234
+/adw:invoke-workflow bugfix-hitl-worktree ABC-1234 branch=release/24.3
+/adw:invoke-workflow feature-hitl-worktree ABC-1234 be thorough about the repro
 ```
-
-The four workflows:
-
-| Slug | What it is |
-|---|---|
-| `feature-hitl` | build a feature ticket end-to-end, in your current checkout |
-| `feature-hitl-worktree` | same, in an isolated worktree |
-| `bugfix-human-in-the-loop` | fix a bug, repro-first, in your current checkout |
-| `bugfix-hitl-worktree` | same, in an isolated worktree |
 
 **Every workflow starts from a freshly fetched base branch** — `main` unless
 `branch=` says otherwise. The worktree variants cut a checkout from it; the
 non-worktree variants refuse a dirty tree and cut the working branch from it in
-place.
+place. An explicit `branch=` is confirmed with you before step 0.
 
-See `skills/invoke-workflow/README.md` for the full argument and prerequisite
-reference.
+The four slugs are in the table further down. See
+`plugins/adw/skills/invoke-workflow/README.md` for the full argument and
+prerequisite reference.
+
+## What each step does
+
+Every workflow is the same eight steps. Feature and bugfix differ in what a step
+*means*, not in the shape; the worktree variants add step 0 and step 3.5.
+
+| # | Step | What happens | Skill |
+|---|---|---|---|
+| **0** | Get onto a clean base | Worktree variants cut a detached, read-only checkout from freshly fetched `origin/<base>`, so nothing is diagnosed on a dirty tree. Non-worktree variants refuse to start on a dirty tree, fetch the base, report its SHA, and cut the working branch in place. | — |
+| **1** | Gather context | Pulls the ticket and follows every linked reference exactly one hop — Confluence, linked Jira, Drive/Docs, Figma, GitHub — verbatim into `docs/plans/<TICKET-ID>-<slug>/raw/`, with an index and a list of anything it could not reach. **Bugfix:** also walks the stated repro and reports whether it reproduces as written, needs different steps, or no longer reproduces at all. | `fetch-from-jira` |
+| **2** | Grill, then write the PRD | Stress-tests the plan against the domain model, one question at a time, waiting for your answer before the next branch. **Bugfix:** isolates the root cause rather than the symptom, escalating to `systematic-debugging` when you are guessing. Then publishes a durable PRD describing the WHAT — including the agreed test seams. | `grill-with-docs` → `to-prd` |
+| **3** | Plan the slices | Turns the PRD into a tracer-bullet, vertical-slice implementation plan — the HOW — each slice carrying its own acceptance criteria, blockers, and a **test floor**: per-behaviour tests, each with a mandatory level. Stops for you to approve. **Bugfix:** one surgical slice, the reproducing test first. | `to-issues` |
+| **3.5** | Full worktree setup | Worktree variants only, and deliberately deferred to here: a ticket that dies in grilling never pays the cost. Isolated ports, per-worktree env, dependencies, start/stop scripts. Retires the step-0 checkout. | `create-worktree` |
+| **4** | Build, red first | Slice by slice, one behaviour at a time: write ONE failing test, run it, show the red, then the minimal code to pass, then the green. Pause at every slice boundary. E2E rows are owed to step 5, not written here. Commit per slice. | `tdd` |
+| **5** | The e2e batch | In a fresh session once the last slice is green, because e2e flows span slices and can only be written as whole journeys. Collects every owed e2e row, authors the specs, boots the stack, runs the suite once, records pass/fail back into the plan. | `e2e-pass` |
+| **6** | Coverage *and usefulness* | Audits tests against each slice's acceptance criteria and test floor — and checks they are worth having: quote the load-bearing assertion, name a mutation it would catch. A test with no nameable mutation is a gap, not coverage. **Bugfix:** confirms the reproducing test genuinely fails without the fix. | `to-coverage-report` |
+| **7** | Garden the docs | Consolidates the markdown the ticket sprawled — one canonical home per fact, supersession explicit, cross-links fixed, durable facts harvested out of the planning husks and into the feature-level spec. Proposes first; changes nothing without per-item approval. | `documentation-gardening` |
+| **8** | Hand back | Stops. You commit, verify and push. Before handing over it drafts the PR body ending in a **Core Claims** section and the ticket's "How to test" comment. | — |
+
+### Two things the hand-back insists on
+
+**Core Claims** is a falsification brief, not a summary: numbered claims hardest
+first, each naming the cheapest way to break it, plus known-intentional
+exceptions, test traps, explicit out-of-scope, and any behaviour change the
+ticket didn't ask for. It ships with a reviewer contract requiring a per-claim
+`UPHELD / REFUTED / UNVERIFIABLE` plus `file:line` evidence — claims without
+that requirement read as an answer key and come back all-green.
+
+**"How to test"** goes on the ticket before QA: PR link, preconditions and
+setup, per-AC steps with explicit expected results, regression checks, and the
+exact commands stated as all-green.
+
+### Which variant
+
+| | In your checkout | Isolated worktree |
+|---|---|---|
+| **Feature** | `feature-hitl` | `feature-hitl-worktree` |
+| **Bug** | `bugfix-human-in-the-loop` | `bugfix-hitl-worktree` |
+
+The worktree variants are the default when tickets run in parallel. The bugfix
+worktree variant carries a promotion rule: if confirming the repro needs a
+booted stack, step 1 pulls step 3.5 forward rather than walking the repro on a
+thin checkout or a dirty main.
 
 ## Before your first run: MCP servers
 
@@ -123,6 +161,22 @@ Repo-shape conventions in the templates — plan artifacts under
 `docs/plans/<TICKET-ID>-<slug>/`, feature specs under `docs/specs/` — are
 conventions, not requirements. Any repo can follow the same steps with its own
 paths.
+
+## Four skills are yours to type
+
+`e2e-pass`, `to-prd`, `to-issues` and `to-coverage-report` carry
+`disable-model-invocation: true`, so the agent cannot call them on its own and
+they do not appear in its skill list. That is deliberate — they are the steps
+that publish an artifact or burn real time, and they stay under your hand. When
+a workflow reaches one, you type it:
+
+```
+/adw:to-prd        /adw:to-issues        /adw:e2e-pass        /adw:to-coverage-report
+```
+
+The other seven (`invoke-workflow`, `fetch-from-jira`, `grill-with-docs`, `tdd`,
+`documentation-gardening`, `systematic-debugging`, `create-worktree`) are
+model-invocable and show up as `adw:*`.
 
 ## Caveats worth reading
 
