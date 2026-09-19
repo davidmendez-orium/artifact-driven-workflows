@@ -137,6 +137,32 @@ Three rules that decide whether the Core Claims section earns anything:
   assignment, and the diff ends up reviewed more narrowly than it would have been with no Core
   Claims section at all. The same rule applies to you when you are the reviewer.
 
+## PR strategy — asked once, before the build
+
+All four templates settle how a ticket's slices become PRs at the step immediately **before** the
+build — 3.5 in the non-worktree variants, 3.6 in the two that spend 3.5 on `/create-worktree` — not
+at hand-back. Asking there is what makes the answer cheap: branches can simply be cut per slice as
+the build goes, instead of a finished fat branch having to be carved back apart afterwards.
+
+**The question is gated on size and recommends one PR.** Three slices or fewer and it is not asked
+at all — the run says it is filing a single PR and moves on. Four or more, it asks once via
+`AskUserQuestion`: one PR (recommended), stacked PRs, or separate non-stacked PRs. Stacking is real
+overhead for reviewers, and it only pays on a genuinely large feature; defaulting to it on every
+multi-slice ticket buys a merge-ordering chore for a diff nobody found too big in the first place.
+The answer is recorded in the plan as a one-line `PR strategy:` entry so the build step and the
+hand-back step read one decision rather than each re-deriving it, and it is asked **once** — step 8
+honours the recorded answer rather than re-opening the question.
+
+**The separate-PR option carries a correctness check.** One branch per slice, all cut from the base,
+is only honest when no slice imports another. Where they do, the templates say to tell the user a
+stack is the truthful answer instead — a non-stacked child PR referencing a symbol from an unmerged
+sibling does not build on its own.
+
+**No carving skill is named, deliberately.** The stacked path is plain `git switch -c` plus
+`gh pr create --base <the branch below it>`, written out in the template. Any skill named in a
+template becomes a hard prerequisite for every install (see *How the check works* below), and this
+is the one path in the workflow that is usually not taken.
+
 ## Workflows
 
 - `bugfix-hitl` — fix a Jira bug end-to-end, TDD + HITL, in the main checkout.

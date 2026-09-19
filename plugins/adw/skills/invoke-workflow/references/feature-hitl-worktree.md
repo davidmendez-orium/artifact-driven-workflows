@@ -36,6 +36,22 @@ Use the /create-worktree skill. Do NOT hand-roll `git worktree add`. Whatever th
 
 If /create-worktree cannot be found, or it reports a repo it needs as NOT FOUND, STOP and tell me — do not substitute a hand-made worktree. This project may not have a /create-worktree skill at all; if it doesn't, say so and let me choose between installing one and dropping to the non-worktree variant of this workflow. One missing the isolated ports and env wiring works right up until it fails in a way that costs an afternoon to diagnose. From here on, ALL build / test / commit work happens inside the worktree.
 
+3.6. PR STRATEGY — the slice plan is approved and no code is written yet, so settle now how these slices become PRs. Count the approved slices and act on the count:
+
+  a. THREE OR FEWER — do not ask. Say in one line that this files as a single PR, and move on. One PR is right for almost every ticket; a stack of small PRs costs a reviewer more ordering overhead than it saves in diff size.
+  b. FOUR OR MORE — ask me ONCE, with AskUserQuestion, and wait for the answer:
+     - One PR (recommended) — every slice commits onto the single working branch.
+     - Stacked PRs — one branch per slice, each cut from the previous, each PR targeting the branch below it. Reviewers get review-sized diffs in dependency order, and each PR retargets to <BASE_BRANCH> as its parent merges. Worth the overhead only on a genuinely large feature.
+     - Separate non-stacked PRs — one branch per slice, every branch cut from <BASE_BRANCH> and targeting it. Honest only if no slice imports another: check the import direction between slices first, and tell me if a stack is the truthful answer instead.
+  c. Record the answer as a one-line "PR strategy:" entry in the implementation plan, so step 4 and step 8 read one decision rather than each re-deriving it.
+
+  Ask this once. Do not re-raise it at step 8, and do not silently change it because the diff came out bigger or smaller than planned — if you think the answer has stopped fitting, say so and let me decide.
+
+  What the answer changes downstream:
+  - ONE PR (and every plan of three slices or fewer): step 4 is unchanged — commit per slice onto the one working branch.
+  - STACKED: at step 4, before starting slice i, cut its branch, inside the worktree from slice i-1's branch (slice 1 from <BASE_BRANCH>) with `git switch -c <TICKET-ID>-part<i>-<slug> <previous-branch>`, and commit that slice's work there. Once a slice branch has a child built on it, never rebase it and never force-push it — the child is built on that history.
+  - SEPARATE: the same branch-per-slice, except every branch is cut from origin/<BASE_BRANCH>.
+
 4. BUILD WITH /tdd — slice by slice, TOGETHER, in this session, inside the worktree. For each slice, work its test floor one behaviour at a time: write ONE failing test, RUN it, and SHOW me the red (paste the failing output); then write the minimal code to pass and show me the green; refactor if needed. Pause for my review at each slice boundary before the next slice. E2E floor rows are OWED to step 5 (/e2e-pass) — not written here; only unit/integration tests are built in the slice loop. Commit per slice.
 
 5. /e2e-pass (in a NEW, context-cleared session, after the last slice is green) — Author + run the e2e batch. Collect every owed e2e floor row across the slices, optionally GRILL the feature docs + implementation for more e2e flows (I bypass, or approve/skip each — approved ones get appended to the slice's test floor), author the specs under this repo's own e2e directory (find it — do not invent a location) as whole cross-slice journeys, then boot the stack + establish the auth session and run the suite once, recording pass/fail back into the implementation plan. Run inside the worktree, using whatever start script /create-worktree generated for it so the stack comes up on this worktree's own ports.
@@ -45,6 +61,8 @@ If /create-worktree cannot be found, or it reports a repo it needs as NOT FOUND,
 7. /documentation-gardening — Before we open the PR, consolidate the markdown this ticket sprawled (plans, slice breakdowns, ADR notes, the PRD + execution log): one canonical home per fact, supersession made explicit, cross-links fixed, durable facts harvested out of the planning husks. Most important, grow the consolidated feature-level spec (docs/specs/<feature>.md) that defines the WHAT over time. Analyse and propose first; change nothing without my per-item approval.
 
 8. HAND BACK — Stop here so I can commit, manually verify, and push the PR from the worktree.
+
+  If the PR STRATEGY step recorded STACKED or SEPARATE, hand back the whole set rather than one PR. List the slice branches in merge order and, for each, the exact line that opens it — `gh pr create --base <the branch below it>` for a stack, `gh pr create --base <BASE_BRANCH>` for separate PRs — titled `<TICKET-ID> [i/N] <short-description>`. Draft a body for every branch, not just the last: each one covers its own slice, carries the full ticket acceptance criteria prefixed "this PR is part i of N toward these criteria", and ends with the Core Claims section below scoped to that slice's own diff. Once the PR numbers exist, add to each body a stack map listing all N in merge order with the current one marked. Say plainly that a stack is merged bottom-up, because merging out of order breaks the retarget chain.
 
 PR body standard — the "Core Claims" section (Developers AND agents, effective now):
 

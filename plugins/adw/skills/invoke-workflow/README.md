@@ -139,6 +139,11 @@ several steps in, after you have already spent a grilling and a planning pass.
 `bugfix`, `feature` and `worktree` each match more than one slug; the driver refuses and lists the
 candidates. An exact slug always wins.
 
+Every variant asks **one** PR-strategy question at the step before the build, and only when the
+approved plan has four or more slices: one PR (recommended), stacked PRs, or separate non-stacked
+PRs. Three slices or fewer files as a single PR with no question asked. Stacking is worth its
+review-ordering overhead only on a large feature, so it is an opt-in, never the default.
+
 ## Portability
 
 No Jira site, project key, org or repo name is stored anywhere in this skill — ticket coordinates
