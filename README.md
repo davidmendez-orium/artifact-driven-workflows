@@ -86,7 +86,10 @@ prerequisite reference.
 ## What each step does
 
 Every workflow is the same eight steps. Feature and bugfix differ in what a step
-*means*, not in the shape; the worktree variants add step 0 and step 3.5.
+*means*, not in the shape. Between planning and building sit two half-steps: the
+worktree variants spend 3.5 on the worktree and settle PR strategy at 3.6, while
+the non-worktree variants have no worktree to build and settle PR strategy at
+3.5.
 
 | # | Step | What happens | Skill |
 |---|---|---|---|
@@ -95,13 +98,14 @@ Every workflow is the same eight steps. Feature and bugfix differ in what a step
 | **2** | Grill, then write the PRD | Stress-tests the plan against the domain model, one question at a time, waiting for your answer before the next branch. **Bugfix:** isolates the root cause rather than the symptom, escalating to `systematic-debugging` when you are guessing. Then publishes a durable PRD describing the WHAT — including the agreed test seams. | `grill-with-docs` → `to-prd` |
 | **3** | Plan the slices | Turns the PRD into a tracer-bullet, vertical-slice implementation plan — the HOW — each slice carrying its own acceptance criteria, blockers, and a **test floor**: per-behaviour tests, each with a mandatory level. Stops for you to approve. **Bugfix:** one surgical slice, the reproducing test first. | `to-issues` |
 | **3.5** | Full worktree setup | Worktree variants only, and deliberately deferred to here: a ticket that dies in grilling never pays the cost. Isolated ports, per-worktree env, dependencies, start/stop scripts. Retires the step-0 checkout. | `create-worktree` |
+| **3.5**<br>*(3.6 worktree)* | Settle PR strategy | Asked before the build, so branches can be cut per slice as it goes instead of a fat branch being carved apart afterwards. Gated on size: three slices or fewer files as one PR with no question asked; four or more asks **once** — one PR (recommended), stacked, or separate non-stacked. Recorded in the plan as a one-line `PR strategy:` entry that steps 4 and 8 both read. Separate PRs carry a correctness check: honest only if no slice imports another. | — |
 | **4** | Build, red first | Slice by slice, one behaviour at a time: write ONE failing test, run it, show the red, then the minimal code to pass, then the green. Pause at every slice boundary. E2E rows are owed to step 5, not written here. Commit per slice. | `tdd` |
 | **5** | The e2e batch | In a fresh session once the last slice is green, because e2e flows span slices and can only be written as whole journeys. Collects every owed e2e row, authors the specs, boots the stack, runs the suite once, records pass/fail back into the plan. | `e2e-pass` |
 | **6** | Coverage *and usefulness* | Audits tests against each slice's acceptance criteria and test floor — and checks they are worth having: quote the load-bearing assertion, name a mutation it would catch. A test with no nameable mutation is a gap, not coverage. **Bugfix:** confirms the reproducing test genuinely fails without the fix. | `to-coverage-report` |
 | **7** | Garden the docs | Consolidates the markdown the ticket sprawled — one canonical home per fact, supersession explicit, cross-links fixed, durable facts harvested out of the planning husks and into the feature-level spec. Proposes first; changes nothing without per-item approval. | `documentation-gardening` |
-| **8** | Hand back | Stops. You commit, verify and push. Before handing over it drafts the PR body ending in a **Core Claims** section and the ticket's "How to test" comment. | — |
+| **8** | Hand back | Stops. You commit, verify and push. Before handing over it drafts the PR body ending in a **Core Claims** section and the ticket's "How to test" comment. If you hand PR creation *to it*, it first proves every branch still merges into its base and stops to ask if one doesn't. | — |
 
-### Two things the hand-back insists on
+### Three things the hand-back insists on
 
 **Core Claims** is a falsification brief, not a summary: numbered claims hardest
 first, each naming the cheapest way to break it, plus known-intentional
@@ -113,6 +117,16 @@ that requirement read as an answer key and come back all-green.
 **"How to test"** goes on the ticket before QA: PR link, preconditions and
 setup, per-AC steps with explicit expected results, regression checks, and the
 exact commands stated as all-green.
+
+**A merge check before any delegated `gh pr create`.** Hand-back is the default,
+but when you ask the run to open the PR itself it first re-fetches the base and
+proves the branch still merges into it, in memory via `git merge-tree`, touching
+no working tree. Each branch is checked against the base it actually targets — a
+stacked slice against the slice below it, not against the base branch — and if
+any branch in a set conflicts, none are opened. On a conflict it reports the
+paths and the base SHA and asks you how to resolve; it never resolves for you.
+`gh pr create` will open a conflicted PR perfectly happily, so without this the
+first person to find out the base moved is a reviewer.
 
 ### Which variant
 

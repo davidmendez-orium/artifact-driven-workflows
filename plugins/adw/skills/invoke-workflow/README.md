@@ -144,6 +144,14 @@ approved plan has four or more slices: one PR (recommended), stacked PRs, or sep
 PRs. Three slices or fewer files as a single PR with no question asked. Stacking is worth its
 review-ordering overhead only on a large feature, so it is an opt-in, never the default.
 
+Every variant also gates *delegated* PR creation at step 8. Hand-back is the default, but if you ask
+the run to open the PR itself it first re-fetches the base and proves the branch still merges, via
+`git merge-tree --write-tree` — an in-memory merge that writes no working tree, index or HEAD. Each
+branch is checked against the base it actually targets (a stacked slice against the slice below it),
+a set is all-or-nothing, and a conflict stops the run to ask you how to resolve rather than being
+resolved for you. `gh pr create` opens a conflicted PR just as happily as a clean one, which is the
+whole reason the gate is there.
+
 ## Portability
 
 No Jira site, project key, org or repo name is stored anywhere in this skill — ticket coordinates

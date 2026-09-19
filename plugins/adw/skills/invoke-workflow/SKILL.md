@@ -163,6 +163,30 @@ sibling does not build on its own.
 template becomes a hard prerequisite for every install (see *How the check works* below), and this
 is the one path in the workflow that is usually not taken.
 
+## Delegated PR creation — the merge gate at step 8
+
+Step 8 hands back by default: the user commits and opens the PR themselves. When they instead ask
+the run to open it, all four templates require one gate first — every branch about to be opened must
+still merge into the base it targets, checked with
+`git merge-tree --write-tree --name-only origin/<BASE_BRANCH> <branch>` after a fresh fetch.
+
+**The gate exists because `gh pr create` is not one.** It opens a conflicted PR exactly as readily as
+a clean one, so without this check the first party to learn the base moved is a reviewer, hours
+later, on a PR nobody can merge. `merge-tree` is the right instrument because it merges in memory —
+it writes no working tree, index or HEAD — so the check costs nothing and is safe to run mid-run on a
+dirty tree, unlike a `git merge --no-commit` / `git merge --abort` probe (offered only as the
+fallback for git older than 2.38, and never on a dirty tree).
+
+**Each branch is checked against its own target, and the set is all-or-nothing.** For a stack that
+means slice `i` against slice `i-1`, not against the base branch — checking a whole stack against
+`<BASE_BRANCH>` tests a merge that will never happen. If any branch in the set conflicts, none are
+opened: a stack whose lower slice is conflicted makes every PR above it wrong too.
+
+**On a conflict the run stops and asks; it never resolves.** It reports the branch, the conflicting
+paths and the base SHA, then offers rebase / merge-in / leave-it-to-me and waits. Resolving someone
+else's conflict unattended is how a silent mismerge ships, and the no-force-push rule protecting
+stacked slice branches applies here too.
+
 ## Workflows
 
 - `bugfix-hitl` — fix a Jira bug end-to-end, TDD + HITL, in the main checkout.

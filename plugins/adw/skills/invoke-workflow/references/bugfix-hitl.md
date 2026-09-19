@@ -100,6 +100,19 @@ Before we open the PR, consolidate the markdown this ticket sprawled (plans, roo
 
 Stop here so I can commit, manually re-run the original repro to confirm it's dead, and push the PR.
 
+**If I ask YOU to open the PR, prove it still merges first.** Handing back is the default and normally you stop here — but when I do hand PR creation to you, run one gate before the first `gh pr create`: every branch you are about to open must still merge cleanly into the base it targets. The base you cut from at step 0 is hours or days old by now, and `gh pr create` does not care — GitHub opens a conflicted PR exactly as happily as a clean one, and the conflict then surfaces to a reviewer instead of to us.
+
+```bash
+git fetch origin <BASE_BRANCH>
+git merge-tree --write-tree --name-only origin/<BASE_BRANCH> <branch-being-opened>
+```
+
+Exit 0 means it merges clean, and the only output is a tree OID. Exit 1 means conflict, and the lines between that OID and the first blank line are the conflicting paths. Neither outcome writes the working tree, the index or HEAD, so this is safe to run at any point. (`--write-tree` needs git ≥ 2.38. If this repo's git is older, fall back to `git merge --no-commit --no-ff origin/<BASE_BRANCH>` followed by `git merge --abort` — but that one DOES touch the working tree, so never run it on a dirty one.)
+
+Check **every** branch you are about to open, each against the base it actually targets: for a stack, slice `i` against slice `i-1` (slice 1 against `origin/<BASE_BRANCH>`); for separate PRs, every branch against `origin/<BASE_BRANCH>`. If any one of them conflicts, open **none** of them — a stack whose lower slice is conflicted makes every PR above it wrong too.
+
+On a conflict, STOP and tell me the branch, the conflicting paths, and the base SHA you checked against. Then ask me how to resolve it — rebase onto the fresh base, merge the base in, or leave it to me — and wait. Do not resolve it yourself, and never force-push a slice branch that already has a child built on it. On a clean result, say which base SHA you checked against, then open the PRs.
+
 If the PR Strategy step recorded **Stacked** or **Separate**, hand back the whole set rather than one PR. List the slice branches in merge order and, for each, the exact line that opens it — `gh pr create --base <the branch below it>` for a stack, `gh pr create --base <BASE_BRANCH>` for separate PRs — titled `<TICKET-ID> [i/N] <short-description>`. Draft a body for every branch, not just the last: each one covers its own slice, carries the full ticket acceptance criteria prefixed "this PR is part i of N toward these criteria", and ends with the Core Claims section below scoped to that slice's own diff. Once the PR numbers exist, add to each body a stack map listing all N in merge order with the current one marked. Say plainly that a stack is merged bottom-up, because merging out of order breaks the retarget chain.
 
 **PR body standard — the "Core Claims" section (Developers AND agents, effective now):**
